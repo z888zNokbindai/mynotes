@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mynote</title>
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Embedded PWA Manifest (Name: mynote) -->
+    <link rel="manifest" href="data:application/manifest+json;utf-8,%7B%22name%22%3A%22mynote%22%2C%22short_name%22%3A%22mynote%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%231e293b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Butf8%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Crect%20width%3D'100'%20height%3D'100'%20rx%3D'20'%20fill%3D'%232563eb'%2F%3E%3Cpath%20d%3D'M30%2030h40M30%2050h40M30%2070h25'%20stroke%3D'%23ffffff'%20stroke-width%3D'8'%20stroke-linecap%3D'round'%2F%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%20512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --editor-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --editor-font-size: 14px;
+            --editor-font-weight: 400;
+            --editor-line-height: 22px;
+            --editor-align: left;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 6px;
+            user-select: none;
+        }
+
+        .divider {
+            width: 1px;
+            height: 18px;
+            background-color: #cbd5e1;
+            margin: 0 4px;
+        }
+
+        button, select {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 4px 8px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+        }
+
+        button:hover, select:hover {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        button.active {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+            color: #4338ca;
+            font-weight: bold;
+        }
+
+        button.primary {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-color: #1d4ed8;
+        }
+
+        button.primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        button.danger:hover {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        /* Segmented alignment buttons */
+        .btn-toggle-group {
+            display: inline-flex;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-toggle-group button {
+            border: none;
+            border-radius: 0;
+            border-right: 1px solid #cbd5e1;
+            padding: 4px 10px;
+        }
+
+        .btn-toggle-group button:last-child {
+            border-right: none;
+        }
+
+        /* Tab Bar */
+        .tab-bar-container {
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            padding: 4px 8px 0 8px;
+            border-bottom: 1px solid #cbd5e1;
+            overflow-x: auto;
+        }
+
+        .tab-list {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+
+        .tab-item {
+            background-color: #cbd5e1;
+            color: #475569;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+            border: 1px solid #94a3b8;
+            border-bottom: none;
+        }
+
+        .tab-item.active {
+            background-color: #ffffff;
+            color: #0f172a;
+            font-weight: 600;
+            border-color: #cbd5e1;
+            border-bottom: 1px solid #ffffff;
+            margin-bottom: -1px;
+        }
+
+        .tab-close {
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .tab-close:hover {
+            background-color: #e2e8f0;
+            color: #ef4444;
+        }
+
+        .btn-add-tab {
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            color: #475569;
+            padding: 4px 8px;
+            height: 28px;
+        }
+
+        .btn-add-tab:hover {
+            background-color: #cbd5e1;
+            color: #0f172a;
+        }
+
+        /* Editor Area */
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+            position: relative;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        .line-numbers {
+            width: 50px;
+            padding: 12px 8px 12px 0;
+            background-color: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-family: var(--editor-font);
+            font-size: var(--editor-font-size);
+            line-height: var(--editor-line-height);
+            text-align: right;
+            user-select: none;
+            overflow: hidden;
+            white-space: pre;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 12px 14px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: var(--editor-font);
+            font-size: var(--editor-font-size);
+            font-weight: var(--editor-font-weight);
+            line-height: var(--editor-line-height);
+            text-align: var(--editor-align);
+            color: #0f172a;
+            background-color: transparent;
+            white-space: pre;
+            overflow: auto;
+            tab-size: 4;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 4px 14px;
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .status-items {
+            display: flex;
+            gap: 14px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 34px;
+            right: 18px;
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="toolbar-group">
+            <span class="brand-title">📝 mynote</span>
+            <div class="divider"></div>
+
+            <input type="file" id="file-input" style="display: none;" accept=".txt,.md,.log,.json,.csv,.js,.html,.css" multiple>
+            <button onclick="document.getElementById('file-input').click()">📂 Open File</button>
+            <button onclick="downloadActiveFile()">💾 Save .txt</button>
+            <button onclick="renameActiveFile()">✏️ Rename</button>
+
+            <div class="divider"></div>
+
+            <select id="font-family-select" title="แบบอักษร">
+                <option value="monospace">Monospace</option>
+                <option value="sans-serif">Sans-Serif</option>
+                <option value="serif">Serif</option>
+            </select>
+
+            <select id="font-size-select" title="ขนาดอักษร">
+                <option value="12">12px</option>
+                <option value="14" selected>14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+            </select>
+
+            <button id="btn-toggle-bold" style="font-weight: 700; width: 30px;" title="ตัวหนา">B</button>
+
+            <!-- Alignment Buttons -->
+            <div class="btn-toggle-group">
+                <button id="btn-align-left" title="ชิดซ้าย" onclick="setTextAlign('left')">⬅️</button>
+                <button id="btn-align-center" title="กึ่งกลาง" onclick="setTextAlign('center')">↔️</button>
+                <button id="btn-align-right" title="ชิดขวา" onclick="setTextAlign('right')">➡️</button>
+            </div>
+        </div>
+
+        <div class="toolbar-group">
+            <button id="btn-install" style="display: none;" class="primary">📲 Install App</button>
+            <button id="btn-copy" class="primary" onclick="copyContent()">📋 Copy</button>
+            <button class="danger" onclick="deleteActiveFile()">🗑️ Delete Tab</button>
+        </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar-container">
+        <div class="tab-list" id="tab-list"></div>
+        <button class="btn-add-tab" onclick="createNewFile()" title="สร้างไฟล์ใหม่">+</button>
+    </div>
+
+    <!-- Main Editor -->
+    <div class="editor-wrapper">
+        <div class="line-numbers" id="line-numbers">1</div>
+        <textarea id="editor" spellcheck="false" placeholder="พิมพ์ข้อความ..."></textarea>
+    </div>
+
+    <!-- Status Bar -->
+    <footer>
+        <div class="status-items">
+            <span id="stat-lines">บรรทัด: 1</span>
+            <span id="stat-chars">ตัวอักษร: 0</span>
+            <span id="stat-words">คำ: 0</span>
+            <span id="stat-align">จัดแนว: ซ้าย</span>
+        </div>
+        <div class="status-items">
+            <span id="db-status">💾 บันทึกอัตโนมัติ</span>
+            <span id="cursor-pos">Ln 1, Col 1</span>
+        </div>
+    </footer>
+
+    <div id="toast" class="toast">ข้อความ</div>
+
+    <script>
+        /* -------------------------------------------------------------
+           1. PWA & Service Worker (mynote)
+           ------------------------------------------------------------- */
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btn-install');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            btnInstall.style.display = 'inline-flex';
+        });
+
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    btnInstall.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'mynote-pwa-v1';
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+        }
+
+        /* -------------------------------------------------------------
+           2. IndexedDB Layer (mynote Storage)
+           ------------------------------------------------------------- */
+        const DB_NAME = 'mynote_db';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'files';
+        let db;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbGetAllFiles() {
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        function dbSaveFile(fileObj) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(fileObj);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        function dbDeleteFile(id) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.delete(id);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        /* -------------------------------------------------------------
+           3. Multi-Tab & File State Management
+           ------------------------------------------------------------- */
+        let files = [];
+        let activeFileId = null;
+
+        const editor = document.getElementById('editor');
+        const lineNumbers = document.getElementById('line-numbers');
+        const tabList = document.getElementById('tab-list');
+        const statLines = document.getElementById('stat-lines');
+        const statChars = document.getElementById('stat-chars');
+        const statWords = document.getElementById('stat-words');
+        const statAlign = document.getElementById('stat-align');
+        const cursorPos = document.getElementById('cursor-pos');
+        const toast = document.getElementById('toast');
+        const btnCopy = document.getElementById('btn-copy');
+
+        const btnAlignLeft = document.getElementById('btn-align-left');
+        const btnAlignCenter = document.getElementById('btn-align-center');
+        const btnAlignRight = document.getElementById('btn-align-right');
+
+        async function initApp() {
+            db = await openDB();
+            files = await dbGetAllFiles();
+
+            if (files.length === 0) {
+                const defaultFile = {
+                    id: 'doc_' + Date.now(),
+                    name: 'mynote.txt',
+                    content: '',
+                    align: 'left',
+                    updatedAt: Date.now()
+                };
+                await dbSaveFile(defaultFile);
+                files.push(defaultFile);
+            }
+
+            const lastActive = localStorage.getItem('mynote_last_tab');
+            const found = files.find(f => f.id === lastActive);
+            activeFileId = found ? found.id : files[0].id;
+
+            renderTabs();
+            loadActiveFile();
+            loadFontConfig();
+        }
+
+        function renderTabs() {
+            tabList.innerHTML = '';
+            files.forEach(file => {
+                const tab = document.createElement('div');
+                tab.className = `tab-item ${file.id === activeFileId ? 'active' : ''}`;
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = file.name;
+                titleSpan.onclick = () => switchTab(file.id);
+
+                const closeSpan = document.createElement('span');
+                closeSpan.className = 'tab-close';
+                closeSpan.innerHTML = '&times;';
+                closeSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    closeTab(file.id);
+                };
+
+                tab.appendChild(titleSpan);
+                tab.appendChild(closeSpan);
+                tabList.appendChild(tab);
+            });
+        }
+
+        function switchTab(id) {
+            if (activeFileId === id) return;
+            saveCurrentEditorState();
+            activeFileId = id;
+            localStorage.setItem('mynote_last_tab', id);
+            renderTabs();
+            loadActiveFile();
+        }
+
+        function loadActiveFile() {
+            const current = files.find(f => f.id === activeFileId);
+            if (current) {
+                editor.value = current.content || '';
+                applyAlignment(current.align || 'left', false);
+                updateStats();
+                updateCursorPosition();
+            }
+        }
+
+        function saveCurrentEditorState() {
+            const current = files.find(f => f.id === activeFileId);
+            if (current) {
+                current.content = editor.value;
+                current.updatedAt = Date.now();
+                dbSaveFile(current);
+            }
+        }
+
+        async function createNewFile(name = null, content = '') {
+            saveCurrentEditorState();
+            const count = files.length + 1;
+            const newFile = {
+                id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
+                name: name || `mynote-${count}.txt`,
+                content: content,
+                align: 'left',
+                updatedAt: Date.now()
+            };
+            files.push(newFile);
+            await dbSaveFile(newFile);
+            activeFileId = newFile.id;
+            localStorage.setItem('mynote_last_tab', activeFileId);
+            renderTabs();
+            loadActiveFile();
+            editor.focus();
+        }
+
+        async function closeTab(id) {
+            if (files.length === 1) {
+                showToast('ต้องมีเอกสารเปิดอยู่อย่างน้อย 1 แท็บ');
+                return;
+            }
+
+            const targetIdx = files.findIndex(f => f.id === id);
+            if (targetIdx === -1) return;
+
+            await dbDeleteFile(id);
+            files.splice(targetIdx, 1);
+
+            if (activeFileId === id) {
+                const nextFile = files[targetIdx] || files[targetIdx - 1];
+                activeFileId = nextFile.id;
+                localStorage.setItem('mynote_last_tab', activeFileId);
+            }
+
+            renderTabs();
+            loadActiveFile();
+        }
+
+        async function deleteActiveFile() {
+            if (confirm('คุณต้องการลบแท็บนี้ใช่หรือไม่?')) {
+                await closeTab(activeFileId);
+            }
+        }
+
+        function renameActiveFile() {
+            const current = files.find(f => f.id === activeFileId);
+            if (!current) return;
+            const newName = prompt('ตั้งชื่อไฟล์ใหม่:', current.name);
+            if (newName && newName.trim() !== '') {
+                current.name = newName.trim();
+                dbSaveFile(current);
+                renderTabs();
+            }
+        }
+
+        // Open Files from Local Disk
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const uploadedFiles = e.target.files;
+            if (!uploadedFiles.length) return;
+
+            Array.from(uploadedFiles).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    createNewFile(file.name, event.target.result);
+                };
+                reader.readAsText(file);
+            });
+            e.target.value = '';
+        });
+
+        /* -------------------------------------------------------------
+           4. Alignment Control
+           ------------------------------------------------------------- */
+        function setTextAlign(align) {
+            applyAlignment(align, true);
+        }
+
+        function applyAlignment(align, saveToDB = true) {
+            document.documentElement.style.setProperty('--editor-align', align);
+
+            btnAlignLeft.classList.toggle('active', align === 'left');
+            btnAlignCenter.classList.toggle('active', align === 'center');
+            btnAlignRight.classList.toggle('active', align === 'right');
+
+            const alignLabelMap = { 'left': 'ซ้าย', 'center': 'กึ่งกลาง', 'right': 'ขวา' };
+            statAlign.textContent = `จัดแนว: ${alignLabelMap[align] || align}`;
+
+            if (saveToDB) {
+                const current = files.find(f => f.id === activeFileId);
+                if (current) {
+                    current.align = align;
+                    dbSaveFile(current);
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------
+           5. Auto Save & Typing Listeners
+           ------------------------------------------------------------- */
+        let debounceTimer;
+        editor.addEventListener('input', () => {
+            updateStats();
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                saveCurrentEditorState();
+            }, 300);
+        });
+
+        editor.addEventListener('scroll', () => {
+            lineNumbers.scrollTop = editor.scrollTop;
+        });
+
+        function updateStats() {
+            const text = editor.value;
+            const lines = text.split('\n');
+            const lineCount = lines.length;
+
+            let numStr = '';
+            for (let i = 1; i <= lineCount; i++) numStr += i + '\n';
+            lineNumbers.textContent = numStr;
+
+            statLines.textContent = `บรรทัด: ${lineCount}`;
+            statChars.textContent = `ตัวอักษร: ${text.length}`;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            statWords.textContent = `คำ: ${words}`;
+        }
+
+        function updateCursorPosition() {
+            const pos = editor.selectionStart;
+            const text = editor.value.substring(0, pos);
+            const lines = text.split('\n');
+            cursorPos.textContent = `Ln ${lines.length}, Col ${lines[lines.length - 1].length + 1}`;
+        }
+
+        editor.addEventListener('keyup', updateCursorPosition);
+        editor.addEventListener('click', updateCursorPosition);
+
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 4;
+                updateStats();
+            }
+        });
+
+        /* -------------------------------------------------------------
+           6. Copy & Download
+           ------------------------------------------------------------- */
+        function copyContent() {
+            const text = editor.value;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => showToast('คัดลอกข้อความแล้ว!'));
+            } else {
+                editor.select();
+                document.execCommand('copy');
+                showToast('คัดลอกข้อความแล้ว!');
+            }
+            btnCopy.textContent = '✅ Copied!';
+            setTimeout(() => btnCopy.innerHTML = '📋 Copy', 1500);
+        }
+
+        function downloadActiveFile() {
+            const current = files.find(f => f.id === activeFileId);
+            const fileName = current ? current.name : 'mynote.txt';
+            const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1800);
+        }
+
+        /* -------------------------------------------------------------
+           7. Font Configuration
+           ------------------------------------------------------------- */
+        const fontStacks = {
+            'monospace': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            'sans-serif': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            'serif': 'Georgia, Cambria, "Times New Roman", Times, serif'
+        };
+
+        const fontFamilySelect = document.getElementById('font-family-select');
+        const fontSizeSelect = document.getElementById('font-size-select');
+        const btnToggleBold = document.getElementById('btn-toggle-bold');
+        let isBold = false;
+
+        function applyStyles() {
+            const family = fontFamilySelect.value;
+            const size = parseInt(fontSizeSelect.value, 10);
+            const weight = isBold ? '700' : '400';
+            const lineHeight = Math.round(size * 1.55);
+
+            document.documentElement.style.setProperty('--editor-font', fontStacks[family]);
+            document.documentElement.style.setProperty('--editor-font-size', `${size}px`);
+            document.documentElement.style.setProperty('--editor-font-weight', weight);
+            document.documentElement.style.setProperty('--editor-line-height', `${lineHeight}px`);
+
+            btnToggleBold.classList.toggle('active', isBold);
+
+            localStorage.setItem('mynote_config', JSON.stringify({ family, size, isBold }));
+        }
+
+        function loadFontConfig() {
+            const cfg = JSON.parse(localStorage.getItem('mynote_config') || '{}');
+            if (cfg.family) fontFamilySelect.value = cfg.family;
+            if (cfg.size) fontSizeSelect.value = cfg.size;
+            if (cfg.isBold !== undefined) isBold = cfg.isBold;
+            applyStyles();
+        }
+
+        fontFamilySelect.addEventListener('change', applyStyles);
+        fontSizeSelect.addEventListener('change', applyStyles);
+        btnToggleBold.addEventListener('click', () => {
+            isBold = !isBold;
+            applyStyles();
+        });
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
